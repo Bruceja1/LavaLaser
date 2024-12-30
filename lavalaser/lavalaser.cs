@@ -55,49 +55,58 @@ namespace lavalaser
                     Vec3U16 pos = new Vec3U16();
                     pos.X = x; pos.Y = y; pos.Z = z;
                     List<int> laserBlockIndexes = new List<int>();
-                    string direction = GetPlayerDirection(p, p.Rot.RotY);
 
-                    //Remove gravel
-                    p.level.AddUpdate(index, Block.Air);
+                    //Check in which direction the laser should be fired
+                    string direction = GetPlayerDirection(p, p.Rot.RotY);
+                    int incrementX = 0;
+                    int incrementY = 0;
+                    int incrementZ = 0;
+                    switch (direction)
+                    {
+                        case "North":
+                            incrementZ = -1;
+                            break;
+                        case "East":
+                            incrementX = 1;
+                            break;
+                        case "South":
+                            incrementZ = 1;
+                            break;
+
+                        default:
+                            incrementX = -1;
+                            break;
+                    }
 
                     //Place line of lava blocks
                     for (int i = 0; i < maxLaserLength; i++)
-                    {                      
-                        switch (direction)
-                        {
-                            case "North":
-                                pos.Z--;
-                                break;
-                            case "East":
-                                pos.X++;
-                                break;
-                            case "South":
-                                pos.Z++;
-                                break;
-
-                            default:
-                                pos.X--;
-                                break;
-                        }                       
+                    {
                         index = p.level.PosToInt(pos.X, pos.Y, pos.Z);
 
-                        if (p.level.GetBlock(pos.X, pos.Y, pos.Z) != Block.Air)
+                        //Laser will be interrupted if there is a block in front of it                      
+                        if (p.level.GetBlock((ushort)(pos.X + incrementX), (ushort)(pos.Y + incrementY), (ushort)(pos.Z + incrementZ)) != Block.Air)
                         {
+                            p.level.AddUpdate(index, lavaLaserBlock);
+                            laserBlockIndexes.Add(index);
                             break;
                         }
-
+                        
                         p.level.AddUpdate(index, lavaLaserBlock);
                         laserBlockIndexes.Add(index);
+
+                        pos.X = (ushort)(pos.X + incrementX);
+                        pos.Y = (ushort)(pos.Y + incrementY);
+                        pos.Z = (ushort)(pos.Z + incrementZ);
                     }
 
-                    //Remove laser
-                    SchedulerTask task = Server.MainScheduler.QueueOnce(_ =>
+                    foreach (int laserBlockIndex in laserBlockIndexes)
                     {
-                        foreach (int laserBlockIndex in laserBlockIndexes)
+                        SchedulerTask task = Server.MainScheduler.QueueOnce(_ =>
                         {
                             p.level.AddUpdate(laserBlockIndex, Block.Air);
-                        }
-                    }, null, TimeSpan.FromMilliseconds(300));
+                        }, null, TimeSpan.FromMilliseconds(1));
+                                           
+                    }
 
                     if (newBlock != Block.Air)
                     {
