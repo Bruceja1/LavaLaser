@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using MCGalaxy;
 using MCGalaxy.Blocks.Physics;
@@ -38,10 +39,21 @@ namespace lavalaser
         public override void Load(bool startup)
         {
             OnBlockChangedEvent.Register(OnBlockPlaced, Priority.Low);
+            Level[] levels = LevelInfo.Loaded.Items;
+            foreach (Level lvl in levels)
+            {
+                if (lvl.name == physicsLevelName)
+                {
+                    lvl.PhysicsHandlers[lavaLaserBlock] = DoCleanup;
+                }
+            }
+
+            OnBlockHandlersUpdatedEvent.Register(OnBlockHandlersUpdated, Priority.Low);
         }
         public override void Unload(bool shutdown)
         {
             OnBlockChangedEvent.Unregister(OnBlockPlaced);
+            OnBlockHandlersUpdatedEvent.Unregister(OnBlockHandlersUpdated);
         }
              
         static void OnBlockPlaced(Player p, ushort x, ushort y, ushort z, ChangeResult result)
@@ -55,6 +67,7 @@ namespace lavalaser
                     Vec3U16 pos = new Vec3U16();
                     pos.X = x; pos.Y = y; pos.Z = z;
                     List<int> laserBlockIndexes = new List<int>();
+
 
                     //Check in which direction the laser should be fired
                     string direction = GetPlayerDirection(p, p.Rot.RotY);
@@ -99,14 +112,19 @@ namespace lavalaser
                         pos.Z = (ushort)(pos.Z + incrementZ);
                     }
 
-                    foreach (int laserBlockIndex in laserBlockIndexes)
+                    /*
+                    SchedulerTask task = Server.MainScheduler.QueueOnce(_ =>
                     {
-                        SchedulerTask task = Server.MainScheduler.QueueOnce(_ =>
+                        int tally = 0;
+                        p.Message("Removing the laser!");
+                        foreach (int laserBlockIndex in laserBlockIndexes)
                         {
-                            p.level.AddUpdate(laserBlockIndex, Block.Air);
-                        }, null, TimeSpan.FromMilliseconds(1));
-                                           
-                    }
+                            p.level.AddUpdate(laserBlockIndex, Block.Air, default(PhysicsArgs));
+                            tally += 1;
+                        }
+                        p.Message("Removed {0} blocks!", tally);
+                    }, null, TimeSpan.FromMilliseconds(300));
+                    */
 
                     if (newBlock != Block.Air)
                     {
@@ -147,6 +165,24 @@ namespace lavalaser
             return direction;
         }
 
+        static void OnBlockHandlersUpdated(Level lvl, BlockID block)
+        {
+            if (lvl.name != physicsLevelName)
+            {
+                return;
+            }
+            if (block != lavaLaserBlock)
+            {
+                return;
+            }
+
+            lvl.PhysicsHandlers[lavaLaserBlock] = DoCleanup;
+        }
+
+        static void DoCleanup(Level lvl, ref PhysInfo C)
+        {
+            lvl.AddUpdate(C.Index, Block.Air, default(PhysicsArgs));
+        }
 
         static void MsgDebugger(string message, params object[] args)
         {
