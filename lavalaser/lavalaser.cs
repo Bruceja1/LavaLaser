@@ -30,12 +30,6 @@ namespace lavalaser
         static BlockID lavaLaserBlock = 11;
         static ushort maxLaserLength = 8;       
 
-
-
-        //You can find the server-side block ID in a custom command with:
-        //Vec3S32 pos = p.Pos.FeetBlockCoords;
-        //p.Message("Server-side BlockID at this location is {0}", p.level.GetBlock((ushort)pos.X, (ushort)pos.Y, (ushort)pos.Z));
-
         public override void Load(bool startup)
         {
             OnBlockChangedEvent.Register(OnBlockPlaced, Priority.Low);
@@ -47,7 +41,6 @@ namespace lavalaser
                     lvl.PhysicsHandlers[lavaLaserBlock] = DoCleanup;
                 }
             }
-
             OnBlockHandlersUpdatedEvent.Register(OnBlockHandlersUpdated, Priority.Low);
         }
         public override void Unload(bool shutdown)
@@ -91,12 +84,12 @@ namespace lavalaser
                             break;
                     }
 
-                    //Place line of lava blocks
+                    // Place line of lava blocks
                     for (int i = 0; i < maxLaserLength; i++)
                     {
                         index = p.level.PosToInt(pos.X, pos.Y, pos.Z);
 
-                        //Laser will be interrupted if there is a block in front of it                      
+                        // Laser will be interrupted if there is a block in front of it                      
                         if (p.level.GetBlock((ushort)(pos.X + incrementX), (ushort)(pos.Y + incrementY), (ushort)(pos.Z + incrementZ)) != Block.Air)
                         {
                             p.level.AddUpdate(index, lavaLaserBlock);
@@ -112,28 +105,12 @@ namespace lavalaser
                         pos.Z = (ushort)(pos.Z + incrementZ);
                     }
 
-                    /*
-                    SchedulerTask task = Server.MainScheduler.QueueOnce(_ =>
-                    {
-                        int tally = 0;
-                        p.Message("Removing the laser!");
-                        foreach (int laserBlockIndex in laserBlockIndexes)
-                        {
-                            p.level.AddUpdate(laserBlockIndex, Block.Air, default(PhysicsArgs));
-                            tally += 1;
-                        }
-                        p.Message("Removed {0} blocks!", tally);
-                    }, null, TimeSpan.FromMilliseconds(300));
-                    */
-
                     if (newBlock != Block.Air)
                     {
                         p.Message("{4} placed block ID {0} at ({1}, {2}, {3})", newBlock, x, y, z, p.ColoredName);
                         Logger.Log(LogType.UserActivity, $"{p.ColoredName} placed block {newBlock} at {x}, {y}, {z}");
-                    }                  
-                    
+                    }                                    
                 }
-
             }
         }
 
@@ -181,6 +158,7 @@ namespace lavalaser
 
         static void DoCleanup(Level lvl, ref PhysInfo C)
         {
+            // Remove lava block
             lvl.AddUpdate(C.Index, Block.Air, default(PhysicsArgs));
         }
 
