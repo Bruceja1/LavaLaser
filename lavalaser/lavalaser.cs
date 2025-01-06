@@ -29,7 +29,7 @@ namespace lavalaser
         //Block that the laser is made out of
         static BlockID lavaLaserBlock = 11;
         static ushort maxLaserLength = 8;       
-
+         
         public override void Load(bool startup)
         {
             OnBlockChangedEvent.Register(OnBlockPlaced, Priority.Low);
@@ -60,7 +60,6 @@ namespace lavalaser
                     Vec3U16 pos = new Vec3U16();
                     pos.X = x; pos.Y = y; pos.Z = z;
                     List<int> laserBlockIndexes = new List<int>();
-
 
                     //Check in which direction the laser should be fired
                     string direction = GetPlayerDirection(p, p.Rot.RotY);
@@ -105,11 +104,29 @@ namespace lavalaser
                         pos.Z = (ushort)(pos.Z + incrementZ);
                     }
 
+                    foreach (int blockPosition in laserBlockIndexes)
+                    {
+                        foreach (Player opponent in p.level.players)
+                        {
+                            int opponentLegPos = p.level.PosToInt((ushort)opponent.Pos.BlockCoords.X, (ushort)opponent.Pos.BlockCoords.Y, (ushort)opponent.Pos.BlockCoords.Z);
+                            int opponentHeadPos = p.level.IntOffset(opponentLegPos, 0, -1, 0);
+
+                            if (opponentLegPos == blockPosition || opponentHeadPos == blockPosition)
+                            {
+                                p.level.Message($"{opponent.ColoredName} &3was killed by {p.ColoredName}!");
+                                opponent.SendPosition(p.level.SpawnPos, opponent.Rot);
+                                
+                            }
+                        }
+                    }
+
+                    /*
                     if (newBlock != Block.Air)
                     {
                         p.Message("{4} placed block ID {0} at ({1}, {2}, {3})", newBlock, x, y, z, p.ColoredName);
                         Logger.Log(LogType.UserActivity, $"{p.ColoredName} placed block {newBlock} at {x}, {y}, {z}");
-                    }                                    
+                    } 
+                    */
                 }
             }
         }
@@ -138,7 +155,6 @@ namespace lavalaser
                 direction = "West";
             }           
 
-            p.Message($"Player Direction: {direction}");
             return direction;
         }
 
